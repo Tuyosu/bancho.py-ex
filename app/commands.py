@@ -573,6 +573,41 @@ async def apikey(ctx: Context) -> str | None:
 
     return f"API key generated. Copy your api key from (this url)[http://{ctx.player.api_key}]."
 
+@command(Privileges.UNRESTRICTED, aliases=["lb"])
+async def leaderboard(ctx: Context) -> str | None:
+    if len(ctx.args) < 1 or ctx.args[0] not in ("pp", "score"):
+            return "Invalid syntax: !leaderboard <pp/score>"
+    await users_repo.partial_update(
+        id=ctx.player.id,
+        lb_preference=users_repo.LeaderboardPreference(ctx.args[0]),
+    )
+
+    ctx.player.enqueue(
+        app.packets.notification(f"Leaderboard display mode set to {ctx.args[0]}!"),
+    )
+
+    ctx.player.logout()
+
+    return None
+
+@command(Privileges.UNRESTRICTED)
+async def bancho(ctx: Context) -> str | None:
+    if len(ctx.args) < 1 or ctx.args[0] not in ("on", "off"):
+        return "Invalid syntax: !bancho on/off"
+
+    await users_repo.partial_update(
+        id=ctx.player.id,
+        show_bancho_lb=True if ctx.args[0] == "on" else False,
+    )
+
+    ctx.player.enqueue(
+        app.packets.notification(f"Bancho leaderboard {ctx.args[0]}!")
+    )
+
+    ctx.player.logout()
+
+    return None
+
 
 """ Nominator commands
 # The commands below allow users to

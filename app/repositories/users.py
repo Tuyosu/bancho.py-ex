@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from typing import TypedDict
+from enum import StrEnum
 from typing import cast
 
 from sqlalchemy import Column
 from sqlalchemy import Index
+from sqlalchemy import Enum
 from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import func
@@ -19,6 +21,9 @@ from app._typing import _UnsetSentinel
 from app.repositories import Base
 from app.utils import make_safe_name
 
+class LeaderboardPreference(StrEnum):
+    PP = "pp"
+    SCORE = "score"
 
 class UsersTable(Base):
     __tablename__ = "users"
@@ -42,6 +47,12 @@ class UsersTable(Base):
     custom_badge_icon = Column(String(64))
     userpage_content = Column(String(2048, collation="utf8"))
     api_key = Column(String(36))
+    lb_preference = Column(
+        Enum(LeaderboardPreference, name="lb_preference"),
+        nullable=False,
+        server_default="score",
+    )
+    show_bancho_lb = Column(TINYINT(1), nullable=False, server_default="0")
     irc_key = Column(String(36))
     __table_args__ = (
         Index("users_priv_index", priv),
@@ -73,6 +84,8 @@ READ_PARAMS = (
     UsersTable.custom_badge_name,
     UsersTable.custom_badge_icon,
     UsersTable.userpage_content,
+    UsersTable.lb_preference,
+    UsersTable.show_bancho_lb,
 )
 
 
@@ -95,6 +108,8 @@ class User(TypedDict):
     custom_badge_icon: str | None
     userpage_content: str | None
     api_key: str | None
+    lb_preference: LeaderboardPreference
+    show_bancho_lb: bool
 
 
 async def create(
@@ -228,6 +243,8 @@ async def partial_update(
     custom_badge_icon: str | None | _UnsetSentinel = UNSET,
     userpage_content: str | None | _UnsetSentinel = UNSET,
     api_key: str | None | _UnsetSentinel = UNSET,
+    lb_preference: LeaderboardPreference | _UnsetSentinel = UNSET,
+    show_bancho_lb: bool | _UnsetSentinel = UNSET,
 ) -> User | None:
     """Update a user in the database."""
     update_stmt = update(UsersTable).where(UsersTable.id == id)
@@ -263,6 +280,10 @@ async def partial_update(
         update_stmt = update_stmt.values(userpage_content=userpage_content)
     if not isinstance(api_key, _UnsetSentinel):
         update_stmt = update_stmt.values(api_key=api_key)
+    if not isinstance(lb_preference, _UnsetSentinel):
+        update_stmt = update_stmt.values(lb_preference=lb_preference)
+    if not isinstance(show_bancho_lb, _UnsetSentinel):
+        update_stmt = update_stmt.values(show_bancho_lb=show_bancho_lb)
 
     await app.state.services.database.execute(update_stmt)
 

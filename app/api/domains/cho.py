@@ -865,6 +865,8 @@ async def handle_osu_login_request(
         login_time=login_time,
         is_tourney_client=osu_version.stream == "tourney",
         api_key=user_info["api_key"],
+        lb_preference=user_info["lb_preference"],
+        show_bancho_lb=user_info["show_bancho_lb"] == 1,
     )
 
     data = bytearray(app.packets.protocol_version(19))
@@ -917,6 +919,8 @@ async def handle_osu_login_request(
     # information from sql to be cached.
     await player.stats_from_sql_full()
     await player.relationships_from_sql()
+    if player.show_bancho_lb:
+        await player.update_bancho_rank()
 
     # TODO: fetch player.recent_scores from sql
 
