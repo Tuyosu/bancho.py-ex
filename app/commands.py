@@ -9,6 +9,7 @@ import signal
 import time
 import traceback
 import uuid
+import asyncio
 from collections.abc import Awaitable
 from collections.abc import Callable
 from collections.abc import Mapping
@@ -19,6 +20,9 @@ from datetime import timedelta
 from functools import wraps
 from pathlib import Path
 from time import perf_counter_ns as clock_ns
+from app.discord import Webhook
+from app.discord_utils import create_beatmap_status_change_embed
+from app.discord_utils import create_beatmapset_status_change_embed
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import NamedTuple
@@ -662,6 +666,16 @@ async def _map(ctx: Context) -> str | None:
                 _bmap.status = new_status
                 _bmap.frozen = True
 
+            webhook_url = app.settings.DISCORD_BEATMAP_UPDATES_WEBHOOK
+            if webhook_url:
+                embed = create_beatmapset_status_change_embed(
+                    bmapset=app.state.cache.beatmapset[bmap.set_id],
+                    status=new_status,
+                    player=ctx.player,
+                )
+                webhook = Webhook(webhook_url, embeds=[embed])
+                asyncio.create_task(webhook.post())  # type: ignore[unused-awaitable]
+
             # select all map ids for clearing map requests.
             modified_beatmap_ids = [
                 row["id"]
@@ -679,6 +693,16 @@ async def _map(ctx: Context) -> str | None:
             if bmap.md5 in app.state.cache.beatmap:
                 app.state.cache.beatmap[bmap.md5].status = new_status
                 app.state.cache.beatmap[bmap.md5].frozen = True
+
+                webhook_url = app.settings.DISCORD_BEATMAP_UPDATES_WEBHOOK
+                if webhook_url:
+                    embed = create_beatmap_status_change_embed(
+                        bmap=app.state.cache.beatmap[bmap.md5],
+                        status=new_status,
+                        player=ctx.player,
+                    )
+                    webhook = Webhook(webhook_url, embeds=[embed])
+                    asyncio.create_task(webhook.post())  # type: ignore[unused-awaitable]
 
             modified_beatmap_ids = [bmap.id]
 
