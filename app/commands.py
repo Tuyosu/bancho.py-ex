@@ -2442,7 +2442,7 @@ async def clan_create(ctx: Context) -> str | None:
     # add clan to sql
     new_clan = await clans_repo.create(
         name=name,
-        tag=tag,
+        tag=ctx.args[0],
         owner=ctx.player.id,
     )
 
